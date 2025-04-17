@@ -5,6 +5,7 @@ const moment = require('moment');
 const ExcelJS = require('exceljs');
 const reportQueue = require('../queues/reportQueue');
 const { fetchAllPages } = require('../utils/accountProcessor');
+const { createApiClient } = require('../utils/apiClient');
 
 // Không cần MAX_CONCURRENT_FETCHES nữa vì sẽ xử lý tuần tự
 // const MAX_CONCURRENT_FETCHES = 5;
@@ -654,6 +655,197 @@ exports.fetchConversionData = async (req, res) => {
     });
   } catch (error) {
     console.error('fetchConversionData error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Lỗi server: ' + error.message
+    });
+  }
+};
+
+/**
+ * @desc    Lấy dữ liệu đối soát từ API billing_list
+ * @route   POST /api/reports/settlement
+ * @access  Public
+ */
+exports.fetchSettlementData = async (req, res) => {
+  try {
+    const { accountId, startDate, endDate } = req.body;
+    
+    if (!accountId || !startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        error: 'Vui lòng cung cấp ID tài khoản, ngày bắt đầu và kết thúc'
+      });
+    }
+
+    const account = await Account.findById(accountId);
+    if (!account) {
+      return res.status(404).json({
+        success: false,
+        error: 'Không tìm thấy tài khoản'
+      });
+    }
+
+    const startTimestamp = Math.floor(new Date(startDate).getTime() / 1000);
+    const endTimestamp = Math.floor(new Date(endDate).getTime() / 1000);
+    
+    const cookies = account.getDecryptedCookies();
+    
+    const apiURL = 'https://affiliate.shopee.vn/api/v1/payment/billing_list';
+    const queryParams = {
+      order_completed_start_time: startTimestamp,
+      order_completed_end_time: endTimestamp
+    };
+    
+    const client = createApiClient(cookies);
+    
+    const response = await client.get(apiURL, {
+      params: queryParams,
+      timeout: 30000
+    });
+
+    if (account.cookie_expired) {
+      account.cookie_expired = false;
+      await account.save();
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: response.data,
+      message: 'Lấy dữ liệu đối soát thành công'
+    });
+  } catch (error) {
+    if (error.response && error.response.status === 401) {
+      try {
+        const account = await Account.findById(req.body.accountId);
+        if (account) {
+          account.cookie_expired = true;
+          await account.save();
+        }
+      } catch (err) {}
+      
+      return res.status(401).json({
+        success: false,
+        error: 'Cookie đã hết hạn. Vui lòng đăng nhập lại.'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Lỗi server: ' + error.message
+    });
+  }
+};
+
+/**
+ * @desc    Lấy dữ liệu đối soát có kiểm tra hợp lệ cho nhiều kỳ
+ * @route   POST /api/reports/settlement-periods
+ * @access  Public
+ */
+exports.fetchValidSettlementPeriods = async (req, res) => {
+  try {
+    const { accountId, periods } = req.body;
+    
+    if (!accountId || !periods || !Array.isArray(periods) || periods.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Vui lòng cung cấp ID tài khoản và danh sách các kỳ đối soát'
+      });
+    }
+
+    const account = await Account.findById(accountId);
+    if (!account) {
+      return res.status(404).json({
+        success: false,
+        error: 'Không tìm thấy tài khoản'
+      });
+    }
+
+    // Kiểm tra các kỳ trong tương lai và bỏ qua
+    const today = new Date();
+    const todayTimestamp = Math.floor(today.getTime() / 1000);
+    const validPeriods = [];
+    
+    // Giải mã cookies một lần để dùng cho tất cả các request
+    const cookies = account.getDecryptedCookies();
+    const client = createApiClient(cookies);
+    const apiURL = 'https://affiliate.shopee.vn/api/v1/payment/billing_list';
+    
+    // Xử lý tuần tự để tránh quá tải API
+    for (const period of periods) {
+      try {
+        const { key, name, startTimestamp, endTimestamp } = period;
+        
+        // Bỏ qua kỳ trong tương lai
+        if (endTimestamp > todayTimestamp) {
+          console.log(`Bỏ qua kỳ ${name} (kỳ trong tương lai)`);
+          continue;
+        }
+        
+        console.log(`Đang lấy dữ liệu cho kỳ ${name}: startTimestamp=${startTimestamp}, endTimestamp=${endTimestamp}`);
+        
+        const queryParams = {
+          order_completed_start_time: startTimestamp,
+          order_completed_end_time: endTimestamp
+        };
+        
+        const response = await client.get(apiURL, {
+          params: queryParams,
+          timeout: 30000
+        });
+        
+        const data = response.data?.data || { list: [], income_breakdown: {} };
+        
+        // Kiểm tra tính hợp lệ của dữ liệu
+        const isValid = data?.list?.length > 0;
+        
+        if (isValid) {
+          console.log(`Kỳ ${name} có dữ liệu hợp lệ`);
+          validPeriods.push({
+            key,
+            name,
+            startTimestamp,
+            endTimestamp,
+            data
+          });
+        } else {
+          console.log(`Kỳ ${name} không có dữ liệu`);
+        }
+      } catch (error) {
+        console.error(`Lỗi khi lấy dữ liệu cho kỳ ${period.name}:`, error.message);
+        // Tiếp tục với kỳ tiếp theo nếu có lỗi
+        continue;
+      }
+    }
+    
+    // Cập nhật trạng thái cookie nếu fetch thành công
+    if (account.cookie_expired) {
+      account.cookie_expired = false;
+      await account.save();
+    }
+    
+    res.status(200).json({
+      success: true,
+      data: validPeriods,
+      message: `Lấy dữ liệu thành công cho ${validPeriods.length}/${periods.length} kỳ đối soát`
+    });
+  } catch (error) {
+    if (error.response && error.response.status === 401) {
+      try {
+        const account = await Account.findById(req.body.accountId);
+        if (account) {
+          account.cookie_expired = true;
+          await account.save();
+        }
+      } catch (err) {}
+      
+      return res.status(401).json({
+        success: false,
+        error: 'Cookie đã hết hạn. Vui lòng đăng nhập lại.'
+      });
+    }
+    
+    console.error('fetchValidSettlementPeriods error:', error);
     res.status(500).json({
       success: false,
       error: 'Lỗi server: ' + error.message

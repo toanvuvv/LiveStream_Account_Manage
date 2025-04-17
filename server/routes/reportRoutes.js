@@ -21,7 +21,13 @@ router.get('/channels', protect, reportController.getChannels);
 // Lấy dữ liệu chuyển đổi từ API v3/report/list - yêu cầu đăng nhập
 router.post('/conversion', protect, reportController.fetchConversionData);
 
+// Lấy dữ liệu đối soát từ API billing_list - yêu cầu đăng nhập
+router.post('/settlement', protect, reportController.fetchSettlementData);
+
 // Lấy trạng thái fetch dữ liệu - yêu cầu đăng nhập
 router.get('/fetch-status', protect, reportController.getFetchStatus);
+
+// Thêm route mới cho API fetchValidSettlementPeriods
+router.post('/settlement-periods', reportController.fetchValidSettlementPeriods);
 
 module.exports = router; 

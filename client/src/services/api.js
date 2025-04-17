@@ -188,6 +188,16 @@ export const reportApi = {
   // Lấy dữ liệu chuyển đổi từ API v3/report/list
   fetchConversionData: (data) => {
     return api.post('/reports/conversion', data);
+  },
+  
+  // Lấy dữ liệu đối soát từ API billing_list
+  fetchSettlementData: (data) => {
+    return api.post('/reports/settlement', data);
+  },
+  
+  // Thêm hàm mới để gọi API lấy các kỳ đối soát hợp lệ
+  fetchValidSettlementPeriods: async (data) => {
+    return await api.post('/reports/settlement-periods', data);
   }
 };
 

@@ -1,0 +1,115 @@
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "list": [],
+    "is_terminated": false,
+    "income_breakdown": {
+      "social_medias": {
+        "seller_commission": {
+          "seller_comm": 0,
+          "seller_comm_dis": "0"
+        },
+        "shopee_commission": {
+          "shopee_comm": 0,
+          "shopee_comm_dis": "0",
+          "ordered_in_same_shop": 0,
+          "ordered_in_same_shop_dis": "0",
+          "ordered_in_different_shop": 0,
+          "ordered_in_different_shop_dis": "0"
+        },
+        "bonus_commission": {
+          "bonus_comm": 0,
+          "bonus_comm_dis": "0",
+          "bonus_type": []
+        },
+        "ppp_commission": {
+          "ppp_comm": 0,
+          "ppp_comm_dis": "0"
+        },
+        "mcn_management_fee": {
+          "mcn_management_fee": 0,
+          "mcn_management_fee_dis": "0"
+        },
+        "service_fee": {
+          "service_fee": 0,
+          "service_fee_dis": "0"
+        }
+      },
+      "shopee_live": {
+        "seller_commission": {
+          "seller_comm": 0,
+          "seller_comm_dis": "0"
+        },
+        "shopee_commission": {
+          "shopee_comm": 0,
+          "shopee_comm_dis": "0",
+          "ordered_in_same_shop": 0,
+          "ordered_in_same_shop_dis": "0",
+          "ordered_in_different_shop": 0,
+          "ordered_in_different_shop_dis": "0"
+        },
+        "bonus_commission": {
+          "bonus_comm": 0,
+          "bonus_comm_dis": "0",
+          "bonus_type": []
+        },
+        "ppp_commission": {
+          "ppp_comm": 0,
+          "ppp_comm_dis": ""
+        },
+        "mcn_management_fee": {
+          "mcn_management_fee": 0,
+          "mcn_management_fee_dis": "0"
+        },
+        "service_fee": {
+          "service_fee": 0,
+          "service_fee_dis": "0"
+        }
+      },
+      "shopee_video": {
+        "seller_commission": {
+          "seller_comm": 0,
+          "seller_comm_dis": "0"
+        },
+        "shopee_commission": {
+          "shopee_comm": 0,
+          "shopee_comm_dis": "0",
+          "ordered_in_same_shop": 0,
+          "ordered_in_same_shop_dis": "0",
+          "ordered_in_different_shop": 0,
+          "ordered_in_different_shop_dis": "0"
+        },
+        "bonus_commission": {
+          "bonus_comm": 0,
+          "bonus_comm_dis": "0",
+          "bonus_type": []
+        },
+        "ppp_commission": {
+          "ppp_comm": 0,
+          "ppp_comm_dis": ""
+        },
+        "mcn_management_fee": {
+          "mcn_management_fee": 0,
+          "mcn_management_fee_dis": "0"
+        },
+        "service_fee": {
+          "service_fee": 0,
+          "service_fee_dis": "0"
+        }
+      },
+      "total_payment_amount": 0,
+      "total_payment_amount_dis": "0",
+      "social_medias_commission": 0,
+      "social_medias_commission_dis": "0",
+      "shopee_live_commission": 0,
+      "shopee_live_commission_dis": "0",
+      "shopee_video_commission": 0,
+      "shopee_video_commission_dis": "0",
+      "service_fee": 0,
+      "service_fee_dis": "0"
+    },
+    "pending_payout_amount": 0,
+    "pending_payout_amount_dis": "0"
+  }
+}

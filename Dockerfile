@@ -18,7 +18,7 @@ ARG REACT_APP_API_URL
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
 
 # Build React app
-RUN npm run build
+RUN cd client && npm run build
 
 # Production image
 FROM node:18-slim
@@ -31,9 +31,13 @@ COPY --from=build /app/server ./server
 COPY --from=build /app/client/build ./client/build
 COPY --from=build /app/.env ./.env
 
-# Cài đặt chỉ dependencies cho production
-RUN npm ci --only=dev
+# Tạo thư mục cache
+RUN mkdir -p /app/cache/reports
 
+# Cài đặt chỉ dependencies cho production
+RUN npm ci --omit=dev
+
+# Railway sẽ tự động expose port được chỉ định trong biến môi trường PORT
 EXPOSE 5000
 
 CMD ["npm", "start"] 

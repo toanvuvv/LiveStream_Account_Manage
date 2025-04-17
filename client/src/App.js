@@ -10,6 +10,7 @@ import Dashboard from './components/Dashboard';
 import AddAccount from './components/accounts/AddAccount';
 import AccountList from './components/accounts/AccountList';
 import AccountDetail from './components/accounts/AccountDetail';
+import AccountSettlement from './components/accounts/AccountSettlement';
 import GroupList from './components/groups/GroupList';
 import GroupDetail from './components/groups/GroupDetail';
 import SessionList from './components/sessions/SessionList';
@@ -47,6 +48,7 @@ function App() {
           <Route element={<PrivateRoute requireAdmin={true} />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/accounts/add" element={<AddAccount />} />
+            <Route path="/accounts/:id/settlement" element={<AccountSettlement />} />
             <Route path="/groups" element={<GroupList />} />
             <Route path="/groups/:id" element={<GroupDetail />} />
             <Route path="/users" element={<UserManagement />} />

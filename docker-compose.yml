@@ -51,7 +51,7 @@ services:
       - REDIS_PASSWORD=your_secure_redis_password # Mật khẩu Redis cho bảo mật
     restart: unless-stopped
     volumes:
-      - ./cache:/app/cache
+      - app-cache:/app/cache
     depends_on:
       - redis # Đảm bảo Redis chạy trước app
     networks:
@@ -69,6 +69,8 @@ services:
 volumes:
   redis-data:
     name: redis-data
+  app-cache:
+    name: app-cache
 
 networks:
   app-network:

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Card, Badge, Row, Col, Form, Modal } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
-import { FaEdit, FaTrash, FaExchangeAlt, FaCookieBite, FaCheckCircle } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaExchangeAlt, FaCookieBite, FaCheckCircle, FaChartLine } from 'react-icons/fa';
 import { accountApi, groupApi } from '../../services/api';
 import Loader from '../common/Loader';
 import Message from '../common/Message';
+import authService from '../../services/authService';
 
 const AccountList = () => {
   const [accounts, setAccounts] = useState([]);
@@ -23,6 +24,9 @@ const AccountList = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [testingCookies, setTestingCookies] = useState(null);
   const [testResult, setTestResult] = useState(null);
+  
+  // Thêm biến kiểm tra quyền admin
+  const isAdmin = authService.isAdmin();
   
   // Lấy danh sách tài khoản và nhóm khi component mount
   useEffect(() => {
@@ -222,9 +226,11 @@ const AccountList = () => {
               </Form.Group>
             </Col>
             <Col md={6} className="d-flex align-items-end justify-content-end">
-              <Link to="/accounts/add" className="btn btn-primary">
-                Thêm Nick Mới
-              </Link>
+              {isAdmin && (
+                <Link to="/accounts/add" className="btn btn-primary">
+                  Thêm Nick Mới
+                </Link>
+              )}
             </Col>
           </Row>
         </Card.Body>
@@ -272,38 +278,46 @@ const AccountList = () => {
                         <Link to={`/sessions/${account._id}`} className="btn btn-sm btn-info me-1">
                           Xem Phiên
                         </Link>
-                        <Button
-                          variant="warning"
-                          size="sm"
-                          className="me-1"
-                          onClick={() => handleUpdateCookiesClick(account)}
-                        >
-                          <FaCookieBite />
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="me-1"
-                          onClick={() => handleChangeGroupClick(account)}
-                        >
-                          <FaExchangeAlt />
-                        </Button>
-                        <Button
-                          variant="success"
-                          size="sm"
-                          className="me-1"
-                          onClick={() => handleTestCookies(account)}
-                          disabled={testingCookies === account._id}
-                        >
-                          <FaCheckCircle />
-                        </Button>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => handleDeleteClick(account)}
-                        >
-                          <FaTrash />
-                        </Button>
+                        
+                        {isAdmin && (
+                          <>
+                            <Link to={`/accounts/${account._id}/settlement`} className="btn btn-sm btn-primary me-1">
+                              <FaChartLine /> Đối Soát
+                            </Link>
+                            <Button
+                              variant="warning"
+                              size="sm"
+                              className="me-1"
+                              onClick={() => handleUpdateCookiesClick(account)}
+                            >
+                              <FaCookieBite />
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="me-1"
+                              onClick={() => handleChangeGroupClick(account)}
+                            >
+                              <FaExchangeAlt />
+                            </Button>
+                            <Button
+                              variant="success"
+                              size="sm"
+                              className="me-1"
+                              onClick={() => handleTestCookies(account)}
+                              disabled={testingCookies === account._id}
+                            >
+                              <FaCheckCircle />
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => handleDeleteClick(account)}
+                            >
+                              <FaTrash />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -314,108 +328,113 @@ const AccountList = () => {
         </Card>
       )}
       
-      {/* Modal xác nhận xóa tài khoản */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Xác nhận xóa</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {accountToDelete && (
-            <p>Bạn có chắc chắn muốn xóa nick "{accountToDelete.user.name}" không?</p>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
-            Hủy
-          </Button>
-          <Button
-            variant="danger"
-            onClick={confirmDelete}
-            disabled={actionLoading}
-          >
-            {actionLoading ? 'Đang xóa...' : 'Xóa'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-      
-      {/* Modal cập nhật cookies */}
-      <Modal show={showCookiesModal} onHide={() => setShowCookiesModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Cập nhật Cookies</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {accountToUpdateCookies && (
-            <>
-              <p>Cập nhật cookies cho nick "{accountToUpdateCookies.user.name}"</p>
-              <Form.Group>
-                <Form.Label>Cookies mới</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={5}
-                  value={newCookies}
-                  onChange={(e) => setNewCookies(e.target.value)}
-                  placeholder="Paste cookies mới vào đây"
-                />
-              </Form.Group>
-            </>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowCookiesModal(false)}>
-            Hủy
-          </Button>
-          <Button
-            variant="primary"
-            onClick={confirmUpdateCookies}
-            disabled={actionLoading || !newCookies.trim()}
-          >
-            {actionLoading ? 'Đang cập nhật...' : 'Cập nhật'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-      
-      {/* Modal đổi nhóm */}
-      <Modal show={showGroupModal} onHide={() => setShowGroupModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Chuyển Nhóm</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {accountToChangeGroup && (
-            <>
-              <p>Chuyển nick "{accountToChangeGroup.user.name}" sang nhóm khác</p>
-              <Form.Group>
-                <Form.Label>Chọn nhóm mới</Form.Label>
-                <Form.Select
-                  value={newGroupId}
-                  onChange={(e) => setNewGroupId(e.target.value)}
-                >
-                  {groups.map(group => (
-                    <option
-                      key={group._id}
-                      value={group._id}
-                      disabled={group._id === accountToChangeGroup.group?._id}
+      {/* Modal chỉ hiển thị khi là admin */}
+      {isAdmin && (
+        <>
+          {/* Modal xác nhận xóa tài khoản */}
+          <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
+            <Modal.Header closeButton>
+              <Modal.Title>Xác nhận xóa</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+              {accountToDelete && (
+                <p>Bạn có chắc chắn muốn xóa nick "{accountToDelete.user.name}" không?</p>
+              )}
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+                Hủy
+              </Button>
+              <Button
+                variant="danger"
+                onClick={confirmDelete}
+                disabled={actionLoading}
+              >
+                {actionLoading ? 'Đang xóa...' : 'Xóa'}
+              </Button>
+            </Modal.Footer>
+          </Modal>
+          
+          {/* Modal cập nhật cookies */}
+          <Modal show={showCookiesModal} onHide={() => setShowCookiesModal(false)}>
+            <Modal.Header closeButton>
+              <Modal.Title>Cập nhật Cookies</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+              {accountToUpdateCookies && (
+                <>
+                  <p>Cập nhật cookies cho nick "{accountToUpdateCookies.user.name}"</p>
+                  <Form.Group>
+                    <Form.Label>Cookies mới</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={5}
+                      value={newCookies}
+                      onChange={(e) => setNewCookies(e.target.value)}
+                      placeholder="Paste cookies mới vào đây"
+                    />
+                  </Form.Group>
+                </>
+              )}
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" onClick={() => setShowCookiesModal(false)}>
+                Hủy
+              </Button>
+              <Button
+                variant="primary"
+                onClick={confirmUpdateCookies}
+                disabled={actionLoading || !newCookies.trim()}
+              >
+                {actionLoading ? 'Đang cập nhật...' : 'Cập nhật'}
+              </Button>
+            </Modal.Footer>
+          </Modal>
+          
+          {/* Modal đổi nhóm */}
+          <Modal show={showGroupModal} onHide={() => setShowGroupModal(false)}>
+            <Modal.Header closeButton>
+              <Modal.Title>Chuyển Nhóm</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+              {accountToChangeGroup && (
+                <>
+                  <p>Chuyển nick "{accountToChangeGroup.user.name}" sang nhóm khác</p>
+                  <Form.Group>
+                    <Form.Label>Chọn nhóm mới</Form.Label>
+                    <Form.Select
+                      value={newGroupId}
+                      onChange={(e) => setNewGroupId(e.target.value)}
                     >
-                      {group.name} {group._id === accountToChangeGroup.group?._id ? '(Hiện tại)' : ''}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-            </>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowGroupModal(false)}>
-            Hủy
-          </Button>
-          <Button
-            variant="primary"
-            onClick={confirmChangeGroup}
-            disabled={actionLoading || !newGroupId || (accountToChangeGroup && newGroupId === accountToChangeGroup.group?._id)}
-          >
-            {actionLoading ? 'Đang chuyển...' : 'Chuyển Nhóm'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
+                      {groups.map(group => (
+                        <option
+                          key={group._id}
+                          value={group._id}
+                          disabled={group._id === accountToChangeGroup.group?._id}
+                        >
+                          {group.name} {group._id === accountToChangeGroup.group?._id ? '(Hiện tại)' : ''}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </>
+              )}
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" onClick={() => setShowGroupModal(false)}>
+                Hủy
+              </Button>
+              <Button
+                variant="primary"
+                onClick={confirmChangeGroup}
+                disabled={actionLoading || !newGroupId || (accountToChangeGroup && newGroupId === accountToChangeGroup.group?._id)}
+              >
+                {actionLoading ? 'Đang chuyển...' : 'Chuyển Nhóm'}
+              </Button>
+            </Modal.Footer>
+          </Modal>
+        </>
+      )}
     </div>
   );
 };

@@ -1,19 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Card, Row, Col, Button, ListGroup, Badge, Spinner } from 'react-bootstrap';
-import axios from 'axios';
+import { Card, Row, Col, ListGroup, Badge, Button, Modal, Form } from 'react-bootstrap';
+import { FaArrowLeft, FaEdit, FaTrash, FaCookieBite, FaCheckCircle } from 'react-icons/fa';
+import { accountApi } from '../../services/api';
+import Loader from '../common/Loader';
+import Message from '../common/Message';
+import authService from '../../services/authService';
 
 const AccountDetail = () => {
   const { id } = useParams();
   const [account, setAccount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showCookiesModal, setShowCookiesModal] = useState(false);
+  const [testingCookies, setTestingCookies] = useState(false);
+  const [testResult, setTestResult] = useState(null);
+
+  // Lấy thông tin quyền admin
+  const isAdmin = authService.isAdmin();
 
   useEffect(() => {
     const fetchAccountDetail = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`/api/accounts/${id}`);
+        const response = await accountApi.getAccountDetail(id);
         setAccount(response.data);
       } catch (err) {
         setError('Không thể tải thông tin tài khoản. Vui lòng thử lại sau.');
@@ -26,88 +37,187 @@ const AccountDetail = () => {
     fetchAccountDetail();
   }, [id]);
 
-  if (loading) {
-    return (
-      <div className="text-center my-5">
-        <Spinner animation="border" role="status">
-          <span className="visually-hidden">Đang tải...</span>
-        </Spinner>
-      </div>
-    );
-  }
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
 
-  if (error) {
-    return (
-      <div className="alert alert-danger" role="alert">
-        {error}
-      </div>
-    );
-  }
+  const handleUpdateCookiesClick = () => {
+    setShowCookiesModal(true);
+  };
 
-  if (!account) {
-    return (
-      <div className="alert alert-warning" role="alert">
-        Không tìm thấy tài khoản với ID: {id}
-      </div>
-    );
-  }
+  const handleTestCookies = async () => {
+    try {
+      setTestingCookies(true);
+      const response = await accountApi.testCookies(id);
+      setTestResult(response.data.message);
+    } catch (err) {
+      setTestResult('Test cookies thất bại');
+    } finally {
+      setTestingCookies(false);
+    }
+  };
+
+  const renderTestResult = () => {
+    if (testingCookies) {
+      return <span className="ms-2">Đang test...</span>;
+    }
+    if (testResult) {
+      return <span className="ms-2">{testResult}</span>;
+    }
+    return null;
+  };
 
   return (
     <div>
-      <h2 className="mb-4">Chi Tiết Tài Khoản</h2>
-      <Card className="mb-4">
-        <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
-          <div>{account.username}</div>
-          <Badge bg={account.status === 'active' ? 'success' : 'danger'}>
-            {account.status === 'active' ? 'Đang hoạt động' : 'Bị khóa'}
-          </Badge>
-        </Card.Header>
-        <Card.Body>
-          <Row>
-            <Col md={6}>
-              <ListGroup variant="flush">
-                <ListGroup.Item>
-                  <strong>ID:</strong> {account._id}
-                </ListGroup.Item>
-                <ListGroup.Item>
-                  <strong>Tên tài khoản:</strong> {account.username}
-                </ListGroup.Item>
-                <ListGroup.Item>
-                  <strong>Mật khẩu:</strong> {account.password}
-                </ListGroup.Item>
-              </ListGroup>
-            </Col>
-            <Col md={6}>
-              <ListGroup variant="flush">
-                <ListGroup.Item>
-                  <strong>Nhóm:</strong> {account.group?.name || 'Chưa phân loại'}
-                </ListGroup.Item>
-                <ListGroup.Item>
-                  <strong>Ngày tạo:</strong> {new Date(account.createdAt).toLocaleDateString('vi-VN')}
-                </ListGroup.Item>
-                <ListGroup.Item>
-                  <strong>Ngày cập nhật:</strong> {new Date(account.updatedAt).toLocaleDateString('vi-VN')}
-                </ListGroup.Item>
-              </ListGroup>
-            </Col>
-          </Row>
-          <div className="mt-4">
-            <h5>Ghi chú</h5>
-            <p>{account.notes || 'Không có ghi chú'}</p>
+      <Link to="/accounts" className="btn btn-light my-3">
+        <FaArrowLeft /> Quay lại
+      </Link>
+      
+      {error && <Message variant="danger">{error}</Message>}
+      
+      {loading ? (
+        <Loader />
+      ) : !account ? (
+        <Message variant="danger">Không tìm thấy tài khoản</Message>
+      ) : (
+        <>
+          <Card className="mb-4">
+            <Card.Header>
+              <div className="d-flex justify-content-between align-items-center">
+                <h3>Chi tiết Nick</h3>
+                {isAdmin && (
+                  <div>
+                    <Button
+                      variant="warning"
+                      className="me-2"
+                      onClick={() => handleUpdateCookiesClick()}
+                    >
+                      <FaCookieBite /> Cập nhật Cookies
+                    </Button>
+                    <Button
+                      variant="success"
+                      className="me-2"
+                      onClick={() => handleTestCookies()}
+                      disabled={testingCookies}
+                    >
+                      <FaCheckCircle /> Test Cookies
+                    </Button>
+                    <Button
+                      variant="danger"
+                      onClick={() => handleDeleteClick()}
+                    >
+                      <FaTrash /> Xóa Nick
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </Card.Header>
+            <Card.Body>
+              <Row>
+                <Col md={6}>
+                  <ListGroup variant="flush">
+                    <ListGroup.Item>
+                      <strong>ID:</strong> {account.user.id}
+                    </ListGroup.Item>
+                    <ListGroup.Item>
+                      <strong>Tên:</strong> {account.user.name}
+                    </ListGroup.Item>
+                    <ListGroup.Item>
+                      <strong>Nhóm:</strong> {account.group?.name || 'Chưa phân nhóm'}
+                    </ListGroup.Item>
+                  </ListGroup>
+                </Col>
+                <Col md={6}>
+                  <ListGroup variant="flush">
+                    <ListGroup.Item>
+                      <strong>Trạng thái Cookies:</strong>{' '}
+                      {account.cookie_expired ? (
+                        <Badge bg="danger">Cookies hết hạn</Badge>
+                      ) : (
+                        <Badge bg="success">Cookies còn hạn</Badge>
+                      )}
+                      {renderTestResult()}
+                    </ListGroup.Item>
+                    <ListGroup.Item>
+                      <strong>Ngày tạo:</strong> {new Date(account.createdAt).toLocaleDateString()}
+                    </ListGroup.Item>
+                    <ListGroup.Item>
+                      <strong>Cập nhật cuối:</strong> {new Date(account.updatedAt).toLocaleDateString()}
+                    </ListGroup.Item>
+                  </ListGroup>
+                </Col>
+              </Row>
+            </Card.Body>
+          </Card>
+          
+          <div className="mb-4">
+            <Link to={`/sessions/${account._id}`} className="btn btn-info me-2">
+              Xem Phiên
+            </Link>
+            {isAdmin && (
+              <Link to={`/accounts/${account._id}/settlement`} className="btn btn-primary">
+                Đối Soát
+              </Link>
+            )}
           </div>
-        </Card.Body>
-      </Card>
-
-      <div className="d-flex gap-2 mb-4">
-        <Link to={`/sessions/${account._id}`}>
-          <Button variant="primary">Xem Lịch Sử Đăng Nhập</Button>
-        </Link>
-        <Link to={`/accounts`}>
-          <Button variant="secondary">Quay Lại Danh Sách</Button>
-        </Link>
-      </div>
+          
+          {/* Modals only shown to admin */}
+          {isAdmin && (
+            <>
+              {/* Modal xác nhận xóa tài khoản */}
+              <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
+                <Modal.Header closeButton>
+                  <Modal.Title>Xác nhận xóa</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                  <p>Bạn có chắc chắn muốn xóa nick "{account.user.name}" không?</p>
+                </Modal.Body>
+                <Modal.Footer>
+                  <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+                    Hủy
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={() => {
+                      // Xử lý xóa tài khoản
+                      setShowDeleteModal(false);
+                    }}
+                  >
+                    Xóa
+                  </Button>
+                </Modal.Footer>
+              </Modal>
+              
+              {/* Modal cập nhật cookies */}
+              <Modal show={showCookiesModal} onHide={() => setShowCookiesModal(false)}>
+                <Modal.Header closeButton>
+                  <Modal.Title>Cập nhật Cookies</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                  <Form.Group>
+                    <Form.Label>Cookies mới</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={5}
+                      placeholder="Paste cookies mới vào đây"
+                    />
+                  </Form.Group>
+                </Modal.Body>
+                <Modal.Footer>
+                  <Button variant="secondary" onClick={() => setShowCookiesModal(false)}>
+                    Hủy
+                  </Button>
+                  <Button variant="primary">
+                    Cập nhật
+                  </Button>
+                </Modal.Footer>
+              </Modal>
+            </>
+          )}
+        </>
+      )}
     </div>
   );
 };
 
-export default AccountDetail; 
+export default AccountDetail;
