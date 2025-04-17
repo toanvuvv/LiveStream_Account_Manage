@@ -56,7 +56,7 @@ const AccountSettlement = () => {
   // Format số tiền (VND) - chia cho 1.000.000 để hiển thị đúng
   const formatCurrency = (amount) => {
     // Chia cho 1.000.000 trước khi format
-    const adjustedAmount = (amount || 0) / 1000000;
+    const adjustedAmount = (amount || 0) / 100000;
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
       currency: 'VND',
