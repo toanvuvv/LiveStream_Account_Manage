@@ -6,22 +6,22 @@ const axios = require('axios');
  * @returns {number} Timestamp đã chuẩn hóa về múi giờ VN tính bằng seconds
  */
 const normalizeTimestampToVNTime = (timestamp) => {
-  // Cách xử lý an toàn hơn cho việc chuyển đổi thời gian
+  // Tạo đối tượng date từ timestamp (UTC)
+  const utcDate = new Date(timestamp);
   
-  // Tạo đối tượng date từ timestamp
-  const date = new Date(timestamp);
+  // Tính toán timestamp cho múi giờ Việt Nam (+0700) bằng cách thêm 7 giờ vào UTC
+  // Đối với VN timezone offset là +7 giờ = +7 * 60 * 60 * 1000 ms
+  const vnOffset = 7 * 60 * 60 * 1000; // 7 giờ tính bằng ms
   
-  // Lấy thời gian cục bộ (local time) theo định dạng ISO
-  const localISOString = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString();
-  
-  // Parse lại thành Date và chuyển sang timestamp ở giây
-  // Đảm bảo thời gian luôn được tính toán theo cùng một múi giờ
-  // Không bị ảnh hưởng bởi cài đặt múi giờ của máy chủ
+  // Chuyển timestamp sang giây và trả về
   const seconds = Math.floor(timestamp / 1000);
+  
+  // Tạo timestamp theo giờ Việt Nam để log ra cho dễ theo dõi
+  const vnTime = new Date(utcDate.getTime() + vnOffset).toISOString();
   
   // In ra log để debug khi cần
   console.log(`Original timestamp: ${timestamp}, Converted to seconds: ${seconds}`);
-  console.log(`Date: ${date.toISOString()}, Local ISO: ${localISOString}`);
+  console.log(`UTC Date: ${utcDate.toISOString()}, VN Time (+0700): ${vnTime}`);
   
   return seconds;
 };

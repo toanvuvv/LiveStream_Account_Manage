@@ -16,62 +16,23 @@ if (process.env.DISABLE_REDIS === 'true') {
       console.log('Thêm job vào queue giả lập:', data);
       return Promise.resolve({ id: 'dummy' });
     },
+    getJob: () => Promise.resolve(null),
     on: () => {}
   };
   
   module.exports = dummyQueue;
   
 } else {
-  // Redis client để kết nối với Redis
-  let redisConfig = {};
+  // Cấu hình đơn giản để kết nối với Redis trong Docker
+  const redisConfig = {
+    host: 'localhost', // Kết nối với Redis đang chạy trên máy local
+    port: 6379,    // Port mặc định của Redis
+  };
 
-  // Log các biến môi trường Redis (che giấu mật khẩu)
-  console.log('Thông tin kết nối Redis:');
-  console.log('REDIS_URL tồn tại:', !!process.env.REDIS_URL);
-  console.log('REDIS_HOST:', process.env.REDIS_HOST);
-  console.log('REDIS_PORT:', process.env.REDIS_PORT);
-
-  // Ưu tiên sử dụng REDIS_URL nếu tồn tại (Railway cung cấp)
-  if (process.env.REDIS_URL) {
-    try {
-      // Parse URL để lấy các thành phần riêng lẻ
-      const redisUrl = new URL(process.env.REDIS_URL);
-      
-      // Tạo cấu hình kết nối rõ ràng thay vì dùng string URL
-      redisConfig = {
-        host: redisUrl.hostname,
-        port: parseInt(redisUrl.port) || 6379,
-        username: redisUrl.username || 'default',
-        password: redisUrl.password,
-        // Kích hoạt TLS nếu protocol là rediss://
-        tls: redisUrl.protocol === 'rediss:' ? {
-          rejectUnauthorized: false
-        } : undefined
-      };
-
-      console.log('Đã cấu hình Redis từ URL với host:', redisUrl.hostname, 'port:', redisUrl.port);
-    } catch (error) {
-      console.error('Lỗi khi phân tích REDIS_URL:', error);
-      
-      // Thử dùng URL trực tiếp nếu parse bị lỗi
-      redisConfig = process.env.REDIS_URL;
-      console.log('Sử dụng REDIS_URL trực tiếp');
-    }
-  } else {
-    // Ngược lại sử dụng các biến riêng lẻ
-    redisConfig = {
-      host: process.env.REDIS_HOST || '127.0.0.1',
-      port: parseInt(process.env.REDIS_PORT) || 6379,
-      password: process.env.REDIS_PASSWORD || undefined
-    };
-    console.log('Sử dụng cấu hình Redis từ các biến riêng lẻ');
-  }
+  console.log('Đang kết nối tới Redis trên localhost');
 
   try {
-    // Nếu kết nối thất bại, thử bỏ TLS
-    const redisClient = new IORedis(redisConfig);
-
-    // Khởi tạo hàng đợi với kết nối Redis sử dụng IORedis
+    // Khởi tạo hàng đợi với kết nối Redis
     const reportQueue = new Bull('report-fetch-queue', {
       redis: redisConfig,
       defaultJobOptions: {
@@ -80,12 +41,13 @@ if (process.env.DISABLE_REDIS === 'true') {
           type: 'exponential',
           delay: 1000,
         },
-        removeOnComplete: 100,
-        removeOnFail: 100,
+        removeOnComplete: 100,  // Giữ 100 job hoàn thành gần nhất
+        removeOnFail: 100,      // Giữ 100 job thất bại gần nhất
       },
     });
 
     // Kiểm tra kết nối Redis
+    const redisClient = new IORedis(redisConfig);
     redisClient.ping().then((result) => {
       console.log('Kết nối Redis thành công:', result);
     }).catch((error) => {
@@ -127,6 +89,7 @@ if (process.env.DISABLE_REDIS === 'true') {
         console.log('Thêm job vào queue giả lập:', data);
         return Promise.resolve({ id: 'dummy' });
       },
+      getJob: () => Promise.resolve(null),
       on: () => {}
     };
     module.exports = dummyQueue;
