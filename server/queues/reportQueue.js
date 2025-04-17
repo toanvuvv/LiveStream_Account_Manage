@@ -4,13 +4,23 @@ const Account = require('../models/Account');
 const IORedis = require('ioredis');
 
 // Redis client để kết nối với Redis
-const redisClient = new IORedis({
-  host: process.env.REDIS_HOST || '127.0.0.1', // Use environment variable, fallback to localhost for local dev
-  port: process.env.REDIS_PORT || 6379,
-  password: process.env.REDIS_PASSWORD || undefined, // Use password if provided
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-});
+let redisConfig = {};
+
+// Ưu tiên sử dụng REDIS_URL nếu tồn tại (Railway cung cấp)
+if (process.env.REDIS_URL) {
+  redisConfig = process.env.REDIS_URL;
+} else {
+  // Ngược lại sử dụng các biến riêng lẻ
+  redisConfig = {
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: process.env.REDIS_PORT || 6379,
+    password: process.env.REDIS_PASSWORD || undefined,
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+  };
+}
+
+const redisClient = new IORedis(redisConfig);
 
 // Khởi tạo hàng đợi với kết nối Redis sử dụng IORedis
 const reportQueue = new Bull('report-fetch-queue', {
@@ -19,21 +29,9 @@ const reportQueue = new Bull('report-fetch-queue', {
       case 'client':
         return redisClient;
       case 'subscriber':
-        return new IORedis({
-          host: process.env.REDIS_HOST || '127.0.0.1',
-          port: process.env.REDIS_PORT || 6379,
-          password: process.env.REDIS_PASSWORD || undefined,
-          maxRetriesPerRequest: null,
-          enableReadyCheck: false,
-        });
+        return new IORedis(redisConfig);
       case 'bclient':
-        return new IORedis({
-          host: process.env.REDIS_HOST || '127.0.0.1',
-          port: process.env.REDIS_PORT || 6379,
-          password: process.env.REDIS_PASSWORD || undefined,
-          maxRetriesPerRequest: null,
-          enableReadyCheck: false,
-        });
+        return new IORedis(redisConfig);
       default:
         throw new Error('Không rõ loại Redis client: ' + type);
     }
