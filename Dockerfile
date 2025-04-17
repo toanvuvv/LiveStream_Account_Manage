@@ -29,7 +29,9 @@ WORKDIR /app
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/server ./server
 COPY --from=build /app/client/build ./client/build
-COPY --from=build /app/.env ./.env
+
+# Tạo file .env trống để tránh lỗi
+RUN touch .env
 
 # Tạo thư mục cache
 RUN mkdir -p /app/cache/reports
