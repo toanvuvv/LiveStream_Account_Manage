@@ -23,13 +23,23 @@ if (process.env.DISABLE_REDIS === 'true') {
   module.exports = dummyQueue;
   
 } else {
-  // Cấu hình đơn giản để kết nối với Redis trong Docker
+  // Cấu hình Redis từ biến môi trường
   const redisConfig = {
-    host: 'localhost', // Kết nối với Redis đang chạy trên máy local
-    port: 6379,    // Port mặc định của Redis
+    host: process.env.REDIS_HOST || 'redis', // Mặc định là tên service trong Docker
+    port: parseInt(process.env.REDIS_PORT) || 6379,
+    password: process.env.REDIS_PASSWORD || 'your_secure_redis_password',
+    maxRetriesPerRequest: null, // Không giới hạn số lần thử lại
+    enableReadyCheck: false,    // Tắt kiểm tra sẵn sàng để tránh lỗi
+    retryStrategy: (times) => {
+      console.log(`Đang thử kết nối lại Redis lần thứ ${times}`);
+      return Math.min(times * 100, 3000); // Tăng dần thời gian thử lại tối đa 3s
+    }
   };
 
-  console.log('Đang kết nối tới Redis trên localhost');
+  console.log('Thông tin kết nối Redis:');
+  console.log('REDIS_HOST:', redisConfig.host);
+  console.log('REDIS_PORT:', redisConfig.port);
+  console.log('REDIS_PASSWORD:', redisConfig.password ? '******' : 'không có');
 
   try {
     // Khởi tạo hàng đợi với kết nối Redis
