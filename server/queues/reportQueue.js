@@ -14,9 +14,7 @@ if (process.env.REDIS_URL) {
   redisConfig = {
     host: process.env.REDIS_HOST || '127.0.0.1',
     port: process.env.REDIS_PORT || 6379,
-    password: process.env.REDIS_PASSWORD || undefined,
-    maxRetriesPerRequest: null,
-    enableReadyCheck: false,
+    password: process.env.REDIS_PASSWORD || undefined
   };
 }
 
@@ -24,18 +22,7 @@ const redisClient = new IORedis(redisConfig);
 
 // Khởi tạo hàng đợi với kết nối Redis sử dụng IORedis
 const reportQueue = new Bull('report-fetch-queue', {
-  createClient: function (type) {
-    switch (type) {
-      case 'client':
-        return redisClient;
-      case 'subscriber':
-        return new IORedis(redisConfig);
-      case 'bclient':
-        return new IORedis(redisConfig);
-      default:
-        throw new Error('Không rõ loại Redis client: ' + type);
-    }
-  },
+  redis: redisConfig,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
