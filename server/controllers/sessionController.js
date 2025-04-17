@@ -1,5 +1,5 @@
 const Account = require('../models/Account');
-const { fetchSessionList, fetchSessionDetail } = require('../utils/apiClient');
+const { fetchSessionList, fetchSessionDetail, normalizeTimestampToVNTime } = require('../utils/apiClient');
 
 /**
  * @desc    Lấy danh sách phiên livestream của một tài khoản
@@ -145,12 +145,16 @@ exports.getSessionDetail = async (req, res) => {
       const avgViewTimeInSeconds = Math.floor(apiData.avgViewTime / 1000);
       const formattedAvgViewTime = formatTime(avgViewTimeInSeconds);
       
+      // Sử dụng normalizeTimestampToVNTime để chuyển đổi thời gian
+      const currentTime = Date.now();
+      const startTimeMillis = currentTime - (avgViewTimeInSeconds * 1000);
+      
       const transformedData = {
         basic_info: {
           title: `Phiên livestream #${sessionId}`, // Vì API mới không trả về tiêu đề
           status: apiData.status, // Giữ nguyên trạng thái
-          start_time: Math.floor(Date.now() / 1000 - avgViewTimeInSeconds), // Mặc định là thời gian hiện tại trừ đi thời gian xem trung bình
-          end_time: apiData.status === 1 ? Math.floor(Date.now() / 1000) : null // Nếu status = 1 (đã kết thúc)
+          start_time: normalizeTimestampToVNTime(startTimeMillis), // Sử dụng normalizeTimestampToVNTime
+          end_time: apiData.status === 1 ? normalizeTimestampToVNTime(currentTime) : null // Nếu status = 1 (đã kết thúc)
         },
         // Thống kê chung
         view_count: apiData.views || 0,

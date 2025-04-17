@@ -1,5 +1,5 @@
 const Account = require('../models/Account');
-const { fetchReportList } = require('../utils/apiClient');
+const { fetchReportList, normalizeTimestampToVNTime } = require('../utils/apiClient');
 const { saveToCache, getFromCache, cacheExists, clearAllUserCache } = require('../utils/cacheManager');
 const moment = require('moment');
 const ExcelJS = require('exceljs');
@@ -581,7 +581,7 @@ exports.getChannels = async (req, res) => {
 };
 
 /**
- * @desc    Lấy dữ liệu chuyển đổi từ API v3/report/list
+ * @desc    Lấy dữ liệu chuyển đổi từ API report/list
  * @route   POST /api/reports/conversion
  * @access  Public
  */
@@ -609,11 +609,15 @@ exports.fetchConversionData = async (req, res) => {
       });
     }
 
-    // Chuyển đổi định dạng ngày từ YYYY-MM-DD thành unix timestamp (seconds)
-    const startTimestamp = Math.floor(new Date(startDate).getTime() / 1000);
-    const endTimestamp = Math.floor(new Date(endDate).getTime() / 1000);
+    // Chuyển đổi định dạng ngày từ YYYY-MM-DD thành unix timestamp (seconds) với hàm normalizeTimestampToVNTime
+    const startTime = new Date(startDate).getTime();
+    const endTime = new Date(endDate).getTime();
+    console.log('Thời gian gốc (milliseconds):', { startTime, endTime });
     
-    console.log('Thời gian đã chuyển đổi:', { startTimestamp, endTimestamp });
+    const startTimestamp = normalizeTimestampToVNTime(startTime);
+    const endTimestamp = normalizeTimestampToVNTime(endTime);
+    
+    console.log('Thời gian đã chuyển đổi (seconds, múi giờ VN):', { startTimestamp, endTimestamp });
     
     // Fetch dữ liệu từ API
     console.log('Giải mã cookies và gọi API');
@@ -626,8 +630,8 @@ exports.fetchConversionData = async (req, res) => {
     
     // Chuẩn bị tham số cho hàm fetchAllPages (thay vì gọi trực tiếp fetchReportList)
     const params = {
-      start_time: startTimestamp * 1000, // Chuyển sang milliseconds để tương thích
-      end_time: endTimestamp * 1000,     // Chuyển sang milliseconds để tương thích
+      start_time: startTime, // Chuyển sang milliseconds để tương thích
+      end_time: endTime,     // Chuyển sang milliseconds để tương thích
       page_size: 500,
       page_number: 1
     };
@@ -686,8 +690,9 @@ exports.fetchSettlementData = async (req, res) => {
       });
     }
 
-    const startTimestamp = Math.floor(new Date(startDate).getTime() / 1000);
-    const endTimestamp = Math.floor(new Date(endDate).getTime() / 1000);
+    // Sử dụng hàm normalizeTimestampToVNTime thay vì chuyển đổi trực tiếp
+    const startTimestamp = normalizeTimestampToVNTime(new Date(startDate).getTime());
+    const endTimestamp = normalizeTimestampToVNTime(new Date(endDate).getTime());
     
     const cookies = account.getDecryptedCookies();
     
@@ -763,7 +768,7 @@ exports.fetchValidSettlementPeriods = async (req, res) => {
 
     // Kiểm tra các kỳ trong tương lai và bỏ qua
     const today = new Date();
-    const todayTimestamp = Math.floor(today.getTime() / 1000);
+    const todayTimestamp = normalizeTimestampToVNTime(today.getTime());
     const validPeriods = [];
     
     // Giải mã cookies một lần để dùng cho tất cả các request

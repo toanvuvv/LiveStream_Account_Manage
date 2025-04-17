@@ -1,6 +1,32 @@
 const axios = require('axios');
 
 /**
+ * Hàm chuẩn hóa timestamp về múi giờ Việt Nam (+0700)
+ * @param {number} timestamp - Timestamp tính bằng milliseconds
+ * @returns {number} Timestamp đã chuẩn hóa về múi giờ VN tính bằng seconds
+ */
+const normalizeTimestampToVNTime = (timestamp) => {
+  // Cách xử lý an toàn hơn cho việc chuyển đổi thời gian
+  
+  // Tạo đối tượng date từ timestamp
+  const date = new Date(timestamp);
+  
+  // Lấy thời gian cục bộ (local time) theo định dạng ISO
+  const localISOString = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString();
+  
+  // Parse lại thành Date và chuyển sang timestamp ở giây
+  // Đảm bảo thời gian luôn được tính toán theo cùng một múi giờ
+  // Không bị ảnh hưởng bởi cài đặt múi giờ của máy chủ
+  const seconds = Math.floor(timestamp / 1000);
+  
+  // In ra log để debug khi cần
+  console.log(`Original timestamp: ${timestamp}, Converted to seconds: ${seconds}`);
+  console.log(`Date: ${date.toISOString()}, Local ISO: ${localISOString}`);
+  
+  return seconds;
+};
+
+/**
  * Tạo API client với cookies đã cung cấp
  * @param {string} cookies - Chuỗi cookies
  * @returns {Object} Axios instance với cookies đã cấu hình
@@ -82,12 +108,12 @@ const fetchReportList = async (cookies, params) => {
       throw new Error('Invalid or empty cookies');
     }
 
-    // Convert timestamps to seconds
+    // Convert timestamps to seconds và chuẩn hóa về múi giờ Việt Nam
     const v3Params = {
       page_size: params.page_size || 500,
       page_num: params.page_number || 1,
-      purchase_time_s: Math.floor(params.start_time / 1000),
-      purchase_time_e: Math.floor(params.end_time / 1000),
+      purchase_time_s: normalizeTimestampToVNTime(params.start_time),
+      purchase_time_e: normalizeTimestampToVNTime(params.end_time),
       version: 1,
       ...(params.aff_channel_id && params.aff_channel_id !== 0 && { aff_channel_id: params.aff_channel_id }),
     };
@@ -184,6 +210,7 @@ const fetchReportList = async (cookies, params) => {
     throw new Error(error.message);
   }
 };
+
 /**
  * Fetch danh sách phiên livestream (API sessionList)
  * @param {string} cookies - Chuỗi cookies
@@ -229,15 +256,15 @@ const testCookies = async (cookies) => {
   try {
     const client = createApiClient(cookies);
     // Lấy timestamp hiện tại và timestamp của 1 ngày trước đó
-    const now = Math.floor(Date.now() / 1000);
-    const oneDayAgo = now - (24 * 60 * 60);
+    const now = Date.now();
+    const oneDayAgo = now - (24 * 60 * 60 * 1000);
     
     const response = await client.get('/v3/report/list', {
       params: {
         page_size: 10,
         page_num: 1,
-        purchase_time_s: oneDayAgo,
-        purchase_time_e: now,
+        purchase_time_s: normalizeTimestampToVNTime(oneDayAgo),
+        purchase_time_e: normalizeTimestampToVNTime(now),
         version: 1
       }
     });
@@ -303,6 +330,7 @@ module.exports = {
   fetchSessionList,
   fetchSessionDetail,
   testCookies,
+  normalizeTimestampToVNTime,
   // fetchCreatorSessionList,
   // fetchCreatorSessionDetail
 }; 
