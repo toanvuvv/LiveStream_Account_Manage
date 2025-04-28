@@ -175,9 +175,20 @@ export const reportApi = {
   
   // Xuất báo cáo ra Excel
   exportReports: (params) => {
-    const queryParams = new URLSearchParams(params).toString();
-    window.location.href = `${API_URL}/reports/export?${queryParams}`;
-    return Promise.resolve(); // Trả về Promise đã resolve để tương thích với các hàm khác
+    return api.get('/reports/export', { 
+      params,
+      responseType: 'blob' // Quan trọng: chỉ định response type là blob để xử lý file
+    }).then(response => {
+      // Tạo URL từ blob
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `bao_cao_${params.startDate}_${params.endDate}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    });
   },
   
   // Lấy danh sách kênh
